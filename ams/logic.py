@@ -11,7 +11,16 @@ from rest_framework.request import Request
 from django.core.files.uploadedfile import UploadedFile
 import uuid
 
-from ams.models import AccessGroupDatabase, AccessGroupUserDatabase, ApprovalProcess, ApprovalStack, ModelNameDatabase
+from ams.models import (
+    AccessGroupDatabase,
+    AccessGroupUserDatabase,
+    ApprovalProcess,
+    ApprovalStack,
+    ApprovalStatusDatabase,
+    ModelNameDatabase,
+    SubscriptionModel,
+    UserModelPermission,
+)
 import uuid
 from django.core.files.storage import default_storage
 from django.core.files.uploadedfile import UploadedFile
@@ -20,11 +29,11 @@ from django.db import transaction
 import uuid
 
 
-def request_to_payload(request: Request) -> dict:
+def request_to_payload(request: Request,data_copy ) -> dict:
     payload = {}
 
     # 1. Handle normal fields
-    for key, value in request.data.items():
+    for key, value in data_copy.items():
         if key in request.FILES:
             continue  # files handled separately
 
@@ -144,46 +153,88 @@ def getDynamicSerializerView(model_class):
 
 
 class DATAHANDLER:
-    def __init__(self, request, class_name):
+    def __init__(self, request, class_name,data_copy = None):
         self.request = request
         self.method = request.method
         self.data = request.data
+        self.data_copy = data_copy
         self.class_name = class_name
+        self.can_create = False
+        self.can_delete = False
+        self.can_update = False
+        self.can_read = False
+        self.data_manager = self.data_management()
         self.approval_stack = self.check_model_author()
-        
 
     def check_model_author(self):
         if not self.request.user.is_authenticated:
             return Response(
-                {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
+                {"error": "Unauthorized request"}, status=status.HTTP_401_UNAUTHORIZED
             )
+
         else:
-            
             model = ModelNameDatabase.objects.filter(
                 model_name=self.class_name.__name__
             ).first()
-            group = AccessGroupDatabase.objects.filter(model=model)
-            permission = AccessGroupUserDatabase.objects.filter(
+            group = AccessGroupDatabase.objects.filter(model=model).first()
+            group_permission = AccessGroupUserDatabase.objects.filter(
                 access_group=group, user=self.request.user
             )
-        
-    # def permission_check(self):
-    #     if not self.approval_stack:
-    #         return Response(
-    #             {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
-    #         )
-    #     else:
-    #         return True
+            for item in group_permission:
+                if item.access_group.can_create:
+                    self.can_create = item.access_group.can_create
+                if item.access_group.can_read:
+                    self.can_read = item.access_group.can_read
+                if item.access_group.can_update:
+                    self.can_update = item.access_group.can_update
+                if item.access_group.can_delete:
+                    self.can_delete = item.access_group.can_delete
+
+            user_level = UserModelPermission.objects.filter(
+                user=self.request.user, model=model
+            )
+            for item in user_level:
+                if item.can_create:
+                    self.can_create = item.can_create
+                if item.can_read:
+                    self.can_read = item.can_read
+                if item.can_update:
+                    self.can_update = item.can_update
+                if item.can_delete:
+                    self.can_delete = item.can_delete
+
+    def data_management(self):
+        model = ModelNameDatabase.objects.filter(
+            model_name=self.class_name.__name__
+        ).first()
+        data = SubscriptionModel.objects.filter(model=model).first()
+        if data:
+            return data
+        else:
+            return None
 
     def process(self, pk=None):
         try:
             if self.method == "POST":
+
+                if not self.can_create:
+                    return Response(
+                        {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
+                    )
                 return self.create()
             elif self.method == "GET":
+                if not self.can_read:
+                    return Response(
+                        {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
+                    )
                 if pk:
                     return self.read(pk)
                 return self.read()
             elif self.method == "PUT" or self.method == "PATCH":
+                if not self.can_update:
+                    return Response(
+                        {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
+                    )
                 if pk:
                     return self.update(pk)
                 else:
@@ -191,6 +242,10 @@ class DATAHANDLER:
                         {"error": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST
                     )
             elif self.method == "DELETE":
+                if not self.can_delete:
+                    return Response(
+                        {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
+                    )
                 if pk:
                     return self.delete(pk)
                 else:
@@ -207,11 +262,33 @@ class DATAHANDLER:
             )
 
     def create(self):
-        SerializerClass = self.MySerializer(self.class_name)
-        serializer = SerializerClass(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=201)
+        if self.data_manager is not None and self.data_manager.create:
+            model_object = self.add_model_to_create()
+            model_object.save()
+            return Response({"message": "creation sent for approval"}, status=201)
+        else:
+            SerializerClass = self.MySerializer(self.class_name)
+            serializer = SerializerClass(data=self.data_copy)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=201)
+
+    def add_model_to_create(self):
+        stat = ApprovalStatusDatabase.objects.filter(code="NEW").first()
+        current_approval = ApprovalStack.objects.filter(
+            code=self.data_manager.code, is_first=True
+        )
+        model_object = ApprovalProcess.objects.create(
+            model_name=self.data_manager.model,
+            status=stat if stat else None,
+            recent_user=current_approval.first() if current_approval else None,
+            payload=request_to_payload(self.request,self.data_copy),
+            company=self.data_manager.company,
+            code=self.data_manager.code,
+            method=self.method,
+        )
+
+        return model_object
 
     def read(self, pk=None):
         SerializerClass = self.MySerializerView(self.class_name)
@@ -234,19 +311,63 @@ class DATAHANDLER:
         instance = self.class_name.objects.filter(pk=pk).first()
         if not instance:
             return Response({"error": "Not found"}, status=404)
+        if self.data_manager is not None and self.data_manager.update:
+            model_object = self.add_model_update_pipe(instance)
+            model_object.save()
+            return Response({"message": "update sent for approval"}, status=201)
+        else:
+            SerializerClass = self.MySerializer(self.class_name)
+            serializer = SerializerClass(instance, data=self.data_copy, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=200)
 
-        SerializerClass = self.MySerializer(self.class_name)
-        serializer = SerializerClass(instance, data=self.request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=200)
+    def add_model_update_pipe(self, instance):
+        stat = ApprovalStatusDatabase.objects.filter(code="NEW").first()
+        current_approval = ApprovalStack.objects.filter(
+            code=self.data_manager.code, is_first=True
+        )
+        model_object = ApprovalProcess.objects.create(
+            model_name=self.data_manager.model,
+            recent_user = current_approval.first() if current_approval else None,
+            payload=request_to_payload(self.request,self.data_copy),
+            status=stat if stat else None,
+            company=self.data_manager.company,
+            code=self.data_manager.code,
+            method=self.method,
+            update_id=instance.pk,
+        )
+
+        return model_object
 
     def delete(self, pk):
         instance = self.class_name.objects.filter(pk=pk).first()
         if not instance:
             return Response({"error": "Not found"}, status=404)
-        instance.delete()
-        return Response({"message": "Deleted"}, status=204)
+
+        if self.data_manager is not None and self.data_manager.delete:
+            self.delete_model_pipe(instance)
+            return Response({"message": "delete request sent for approval"}, status=201)
+        else:
+            instance.delete()
+            return Response({"message": "Deleted"}, status=204)
+
+    def delete_model_pipe(self, instance):
+        stat = ApprovalStatusDatabase.objects.filter(code="NEW").first()
+        current_approval = ApprovalStack.objects.filter(
+            code=self.data_manager.code, is_first=True
+        )
+        model_object = ApprovalProcess.objects.create(
+            model_name=self.data_manager.model,
+            status=stat if stat else None,
+            recent_user = current_approval.first() if current_approval else None,
+            payload=request_to_payload(self.request,self.data_copy),
+            company=self.data_manager.company,
+            code=self.data_manager.code,
+            method=self.method,
+            update_id=instance.pk,
+        )
+        model_object.save()
 
     def MySerializer(self, model_class):
         return getDynamicSerializer(model_class)
@@ -256,8 +377,6 @@ class DATAHANDLER:
 
     def save_to_shadow(self):
         payload = request_to_payload(self.request)
-
-        print("PAYLOAD >>>", payload)
 
         with transaction.atomic():
             obj = ApprovalProcess.objects.create(
