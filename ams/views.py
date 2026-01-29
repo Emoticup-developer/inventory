@@ -263,8 +263,16 @@ class AccessGroupDatabaseView(APIView):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupDatabase, data_copy=data_copy
-        ).process(pk=pk)
-        return pipe
+        )
+        pipe_out = pipe.process(pk=pk)
+        
+        if isinstance(pipe_out, Response):
+            return pipe_out
+
+        instance = pipe.objects.all()
+        serializer_class = pipe.MySerializerView(pipe.class_name)
+        
+        return Response(serializer_class(instance, many=True).data, status=200)
     
     def post(self, request, pk=None):
         data_copy = request.data.copy()

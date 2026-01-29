@@ -295,17 +295,18 @@ class DATAHANDLER:
         SerializerClass = self.MySerializerView(self.class_name)
 
         if pk:
-            instance = self.class_name.objects.filter(pk=pk).first()
+            instance = self.class_name.objects.filter(pk=pk)
+            
             if not instance:
                 return Response({"error": "Not found"}, status=404)
-            return Response(SerializerClass(instance).data, status=200 )
+            return Response(SerializerClass(instance, many=True).data, status=200 )
 
         queryset = dynamic_queryset_filter(
             self.request.query_params,
             self.class_name.objects.all(),
             order_by=self.request.query_params.get("order_by"),
         )
-        return Response(SerializerClass(queryset, many=True).data, status=200   )
+        return queryset
 
     def update(self, pk):
         instance = self.class_name.objects.filter(pk=pk).first()
