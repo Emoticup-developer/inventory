@@ -8,8 +8,9 @@ from django.contrib.auth import authenticate
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from ams.logic import DATAHANDLER
-from ams.models import ApprovalProcess, ApprovalStatusDatabase, ModelNameDatabase
+from ams.models import AccessGroupDatabase, AccessGroupUserDatabase, ApprovalProcess, ApprovalStack, ApprovalStatusDatabase, ModelNameDatabase, SubscriptionModel, UserModelPermission
 from django.db import transaction
+from django.apps import apps
 
 
 class CustomLoginView(APIView):
@@ -59,6 +60,7 @@ class ModelNameDatabaseView(APIView):
 class PipelineApprove(APIView):
 
     def get(self, request, pk=None):
+        print(request.user)
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalProcess, data_copy=request.data.copy()
         ).process(pk=pk)
@@ -69,7 +71,11 @@ class PipelineApprove(APIView):
             data_copy = request.data.copy()
             instance = ApprovalProcess.objects.filter(pk=request.data["id"]).first()
 
-            if request.user != instance.recent_user.user:
+            # Authorization check
+            if (
+                instance.recent_user is not None
+                and request.user != instance.recent_user.user
+            ):
                 return Response(
                     {"error": "You are not authorized to approve this request"},
                     status=status.HTTP_401_UNAUTHORIZED,
@@ -84,62 +90,113 @@ class PipelineApprove(APIView):
             if data_copy["is_approve"] == True or data_copy["is_approve"] == "true":
                 if not instance.comments:
                     instance.comments = []
-
                 instance.comments.append(
                     {
                         "user": request.user.username,
                         "comment": data_copy["comment"],
                         "is_approve": data_copy["is_approve"],
-                        "next_approver": (
-                            instance.recent_user.next_user
-                            if instance.recent_user.next_user
-                            else None
-                        ),
                     }
                 )
 
                 instance.recent_user = (
                     instance.recent_user.next_user
-                    if instance.recent_user.next_user
+                    if instance.recent_user and instance.recent_user.next_user
                     else None
                 )
                 if instance.recent_user is None:
                     with transaction.atomic():
+                        model_name = instance.model_name.model_code
+                        app_label = instance.model_name.model_app
+                        ModelClass = apps.get_model(app_label, model_name)
                         # here the request is ready to create
                         if instance.method == "POST":
-                            self.upsert_model_instance(
-                                instance.model_name, data_copy["payload"]
+                            self.upsert_model_instance(ModelClass, instance.payload)
+                            status_code = ApprovalStatusDatabase.objects.filter(
+                                code="EXECUTED"
+                            ).first()
+
+                            if status_code:
+                                instance.status = status_code
+
+                            instance.save()
+                            return Response(
+                                {"message": "The data has been saved!"},
+                                status=status.HTTP_201_CREATED,
                             )
+
                         elif instance.method == "PUT" or instance.method == "PATCH":
                             self.upsert_model_instance(
-                                instance.model_name, data_copy["payload"], instance.update_id
+                                ModelClass, instance.payload, instance.update_id
+                            )
+
+                            status_code = ApprovalStatusDatabase.objects.filter(
+                                code="EXECUTED"
+                            ).first()
+
+                            if status_code:
+                                instance.status = status_code
+
+                            instance.save()
+                            return Response(
+                                {"message": "The data has been updated!"},
+                                status=status.HTTP_201_CREATED,
                             )
                         elif instance.method == "DELETE":
-                            model_obj = instance.model_name.objects.filter(
+                            model_obj = ModelClass.objects.filter(
                                 pk=instance.update_id
                             ).first()
                             model_obj.delete()
-                        
-                        status = ApprovalStatusDatabase.objects.filter(code="EXECUTED").first()
+                            status_code = ApprovalStatusDatabase.objects.filter(
+                                code="EXECUTED"
+                            ).first()
 
-                        if status:
-                            instance.status = status
-                        pass
+                            if status_code:
+                                instance.status = status_code
+
+                            instance.save()
+                            return Response(
+                                {"message": "The data has been deleted!"},
+                                status=status.HTTP_201_CREATED,
+                            )
+                    return Response(
+                        {"message": "Something went wrong"},
+                        status=status.HTTP_201_CREATED,
+                    )
                 else:
-                    status = ApprovalStatusDatabase.objects.filter(
+                    status_code = ApprovalStatusDatabase.objects.filter(
                         code="PROCESSING"
                     ).first()
-                    if status:
-                        instance.status = status
 
+                    instance.recent_user = (
+                        instance.recent_user.next_user
+                        if instance.recent_user.next_user
+                        else None
+                    )
+                    if status_code:
+                        instance.status = status_code
+                    instance.save()
+                    return Response(
+                        {"message": "data sent for next approval"},
+                        status=status.HTTP_201_CREATED,
+                    )
+            else:
+                instance.comments.append(
+                    {
+                        "user": request.user.username,
+                        "comment": data_copy["comment"],
+                        "is_approve": data_copy["is_approve"],
+                    }
+                )
                 instance.save()
-
-            return Response({"": ""}, status=status.HTTP_201_CREATED)
+                return Response(
+                    {"message": "Rejected by the approver "},
+                    status=status.HTTP_201_CREATED,
+                )
         except Exception as ex:
             return Response(
-                {"error": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR    
+                {"error": str(ex)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-            
+
     def put(self, request, pk=None):
 
         pipe = DATAHANDLER(
@@ -199,3 +256,186 @@ class PipelineApprove(APIView):
 
         instance.save()
         return instance
+
+
+class AccessGroupDatabaseView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+
+
+
+
+class AccessGroupUserDatabaseView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    
+class UserModelPermissionView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=UserModelPermission, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=UserModelPermission, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=UserModelPermission, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=UserModelPermission, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    
+class SubscriptionModelView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=SubscriptionModel, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=SubscriptionModel, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=SubscriptionModel, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=SubscriptionModel, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe 
+    
+    
+class ApprovalStatusDatabaseView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+class ApprovalStackView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStack, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStack, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStack, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=ApprovalStack, data_copy=data_copy
+        ).process(pk=pk)
+        return pipe
+    
+    

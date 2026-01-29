@@ -106,7 +106,7 @@ class SubscriptionModel(models.Model):
         "ModelNameDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
     create = models.BooleanField(default=False)
-    delete = models.BooleanField(default=False)
+    can_delete = models.BooleanField(default=False)
     update = models.BooleanField(default=False)
     code = models.CharField(max_length=100, unique=False, blank=True, null=True)
     company = models.ForeignKey(
@@ -122,7 +122,7 @@ class SubscriptionModel(models.Model):
             + " - "
             + str(self.create)
             + " - "
-            + str(self.delete)
+            + str(self.can_delete)
             + " - "
             + str(self.update)
         )
@@ -204,6 +204,8 @@ class ApprovalProcess(models.Model):
     update_id = models.CharField(blank=True,null=True,max_length=100)
     code = models.CharField(max_length=100, unique=False)
     method = models.TextField(blank=False , null = False , default = "POST")
+    comments = models.JSONField(blank=True, null=True)
+
     ##timestamp
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

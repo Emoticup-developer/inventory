@@ -37,7 +37,62 @@ class StatusDatabaseUser(models.Model):
         ordering = ["-created_at"]
         db_table = "status_database_user"
         
+
+class BusinessArea(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    business_area = models.CharField(max_length=100)
+    business_area_code = models.CharField(max_length=100, unique=True)
+    business_area_description = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.business_area
+
+    class Meta:
+        verbose_name = "Business Area"
+        verbose_name_plural = "Business Areas"
+        ordering = ["-created_at"]
+        db_table = "business_area"
+        unique_together = ("business_area", "business_area_code")
         
+
+class BusinessSector(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    business_sector = models.CharField(max_length=100)
+    business_sector_code = models.CharField(max_length=100, unique=True)
+    business_sector_description = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.business_sector
+
+    class Meta:
+        verbose_name = "Business Sector"
+        verbose_name_plural = "Business Sectors"
+        ordering = ["-created_at"]
+        db_table = "business_sector"
+        unique_together = ("business_sector", "business_sector_code")
+
+
+class CurrencyDatabase(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    currency_name = models.CharField(max_length=100, unique=True)
+    currency_code = models.CharField(max_length=100, unique=True)
+    currency_symbol = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return self.currency_name
+
+    class Meta:
+        verbose_name = "Currency"
+        verbose_name_plural = "Currencies"
+        ordering = ["-created_at"]
+        db_table = "currency_database"
+        unique_together = ("currency_name", "currency_code")
 
 class CountryDatabase(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -83,6 +138,7 @@ class CityDatabase(models.Model):
     city_code = models.CharField(max_length=100, unique=True)
     city_state = models.ForeignKey("StateDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     city_logo = models.ImageField(upload_to="city_logos/", blank=True, null=True, default=None)
+    pin_code = models.CharField(max_length=100, null=True, blank=True)       
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -117,7 +173,7 @@ class LanguageDatabase(models.Model):
 
 class CompanyDatabase(models.Model):
     id = models.BigAutoField(primary_key=True)
-    organization_id = models.CharField(max_length=100,blank=True, null=True)
+    organization_id = models.CharField(max_length=100,blank=True, null=True,unique=True)
     company_name = models.CharField(max_length=100, unique=True)
     company_code = models.CharField(max_length=100, unique=True)
     company_description = models.CharField(max_length=100,blank=True, null=True)
@@ -134,11 +190,15 @@ class CompanyDatabase(models.Model):
         null=True,
         blank=True
     )
+    currency = models.ForeignKey("CurrencyDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.ForeignKey("StatusDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     country = models.ForeignKey("CountryDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     state = models.ForeignKey("StateDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     city = models.ForeignKey("CityDatabase", on_delete=models.SET_NULL, null=True, blank=True)
+    language = models.ForeignKey("LanguageDatabase", on_delete=models.SET_NULL, null=True, blank=True)
+    business_area = models.ForeignKey("BusinessArea", on_delete=models.SET_NULL, null=True, blank=True) 
+    business_sector = models.ForeignKey("BusinessSector", on_delete=models.SET_NULL, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -150,6 +210,7 @@ class CompanyDatabase(models.Model):
         verbose_name_plural = "Companies"
         ordering = ["-created_at"]
         db_table = "company_database"
+        unique_together = ("company_name", "company_code","organization_id","parent_company",)
 
 class UserTypeDatabase(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -168,6 +229,26 @@ class UserTypeDatabase(models.Model):
         verbose_name_plural = "User Types"
         ordering = ["-created_at"]
         db_table = "user_type_database"
+        unique_together = ("type", "type_code")
+
+class PositionDatabase(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    position = models.CharField(max_length=100)
+    position_code = models.CharField(max_length=100, unique=True)
+    position_description = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.position
+    
+    
+    class Meta:
+        verbose_name = "Position"
+        verbose_name_plural = "Positions"
+        ordering = ["-created_at"]
+        db_table = "position_database"
+        unique_together = ("position", "position_code")
 
 
 class UserDatabase(AbstractUser):
@@ -177,12 +258,19 @@ class UserDatabase(AbstractUser):
     user_company = models.ForeignKey("CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     user_type = models.ForeignKey("UserTypeDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     user_code = models.CharField(max_length=100, unique=True)
+    position = models.ForeignKey("PositionDatabase", on_delete=models.SET_NULL, null=True, blank=True)
     email = models.EmailField(unique=True)
     status = models.ForeignKey("StatusDatabaseUser", on_delete=models.SET_NULL, null=True, blank=True)
     phone_number = models.CharField(max_length=100, null=True, blank=True)
+    
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    device_id = models.CharField(max_length=255, null=True, blank=True)
+    emergency_contact = models.CharField(max_length=255, null=True, blank=True)
+    relationship_emergency_contact = models.CharField(max_length=255, null=True, blank=True)
+    remarks = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return str(self.user_code)

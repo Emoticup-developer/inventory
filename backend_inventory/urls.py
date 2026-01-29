@@ -26,4 +26,5 @@ urlpatterns = [
     path("inventory/", include("ims.urls")),
     path("access/", include("ams.urls")),
     path("people/", include("basic.urls")),
+    path("vendor/", include("vendor.urls")),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

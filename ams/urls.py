@@ -6,5 +6,8 @@ urlpatterns = [
     ##ModelNameDatabaseView
     path("model_name_database/", ModelNameDatabaseView.as_view(), name="model_name_database"),
     path("model_name_database/<pk>", ModelNameDatabaseView.as_view(), name="model_name_database"),
+    ##PipelineApprove
+    path("pipeline_approve/", PipelineApprove.as_view(), name="pipeline_approve"),
+    path("pipeline_approve/<pk>", PipelineApprove.as_view(), name="pipeline_approve"),
     
 ]

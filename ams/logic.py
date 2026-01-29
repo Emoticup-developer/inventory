@@ -242,6 +242,7 @@ class DATAHANDLER:
                         {"error": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST
                     )
             elif self.method == "DELETE":
+                print(self.can_delete)
                 if not self.can_delete:
                     return Response(
                         {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
@@ -297,15 +298,14 @@ class DATAHANDLER:
             instance = self.class_name.objects.filter(pk=pk).first()
             if not instance:
                 return Response({"error": "Not found"}, status=404)
-            return Response(SerializerClass(instance).data)
+            return Response(SerializerClass(instance).data, status=200 )
 
         queryset = dynamic_queryset_filter(
             self.request.query_params,
             self.class_name.objects.all(),
             order_by=self.request.query_params.get("order_by"),
         )
-
-        return Response(SerializerClass(queryset, many=True).data)
+        return Response(SerializerClass(queryset, many=True).data, status=200   )
 
     def update(self, pk):
         instance = self.class_name.objects.filter(pk=pk).first()
@@ -344,13 +344,13 @@ class DATAHANDLER:
         instance = self.class_name.objects.filter(pk=pk).first()
         if not instance:
             return Response({"error": "Not found"}, status=404)
-
-        if self.data_manager is not None and self.data_manager.delete:
+        print( self.data_manager.can_delete )
+        if self.data_manager is not None and self.data_manager.can_delete:
             self.delete_model_pipe(instance)
             return Response({"message": "delete request sent for approval"}, status=201)
         else:
-            instance.delete()
-            return Response({"message": "Deleted"}, status=204)
+            return Response({"message": "No access for delete"}, status=403)
+ 
 
     def delete_model_pipe(self, instance):
         stat = ApprovalStatusDatabase.objects.filter(code="NEW").first()

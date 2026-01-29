@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "ims",
     "ams",
     "basic",
+    "vendor",
 ]
 
 MIDDLEWARE = [
