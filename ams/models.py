@@ -166,6 +166,7 @@ class ApprovalStack(models.Model):
     )
     code = models.CharField(max_length=100, unique=False)
     ##timestamp
+    comments = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

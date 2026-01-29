@@ -192,6 +192,7 @@ class UserDatabase(AbstractUser):
         verbose_name_plural = "Users"
         ordering = ["-created_at"]
         db_table = "user_database"
+        unique_together = ("username", "email")
 
 
 
