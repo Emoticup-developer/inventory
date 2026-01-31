@@ -22,6 +22,12 @@ class VendorType(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_vendor_type"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_vendor_type"
+    )
 
     class Meta:
         db_table = "vendor_type"
@@ -89,6 +95,13 @@ class Vendor(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_vendor"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_vendor"
+    )
 
     class Meta:
         db_table = "vendor"
@@ -151,6 +164,13 @@ class VendorMaterial(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_vendor_material"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_vendor_material"
+    )
 
     class Meta:
         db_table = "vendor_material"

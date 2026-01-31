@@ -7,6 +7,7 @@ from ams.models import (
     ApprovalStack,
     ApprovalStatusDatabase,
     ModelNameDatabase,
+    RowLevelPermission,
     SubscriptionModel,
     UserModelPermission,
 )
@@ -20,3 +21,4 @@ admin.site.register(AccessGroupUserDatabase)
 admin.site.register(ApprovalStatusDatabase)
 admin.site.register(ApprovalStack)
 admin.site.register(SubscriptionModel)
+admin.site.register(RowLevelPermission)

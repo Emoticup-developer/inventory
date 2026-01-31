@@ -3,6 +3,7 @@ from django.db import models
 
 ## ALL MODEL REGISED HERE
 class ModelNameDatabase(models.Model):
+    
     id = models.BigAutoField(primary_key=True)
     model_name = models.CharField(max_length=100, unique=True)
     model_code = models.CharField(max_length=100, unique=True)
@@ -10,6 +11,13 @@ class ModelNameDatabase(models.Model):
     model_description = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def __str__(self):
         return str(self.model_name) + str(self.model_code)
@@ -17,12 +25,7 @@ class ModelNameDatabase(models.Model):
 
 # group wise permission WHERE I CAN CREATED READ UPDATE DELETE
 class AccessGroupDatabase(models.Model):
-
     id = models.BigAutoField(primary_key=True)
-    ##company
-    company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
-    )
 
     ##group
     access_group_name = models.CharField(max_length=100, unique=True)
@@ -41,6 +44,13 @@ class AccessGroupDatabase(models.Model):
     ##timestamp
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
 
     def __str__(self):
         return self.access_group_name
@@ -52,6 +62,41 @@ class AccessGroupDatabase(models.Model):
         db_table = "access_group_database"
 
 
+
+class RowLevelPermission(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    group = models.ForeignKey(
+        "AccessGroupDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    user = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True,related_name="user_row_permission"
+    )
+    #Code where associated model code is stored for row level permission
+    code = models.CharField(max_length=100, unique=False)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return str(self.group)
+    
+    
+    class Meta:
+        verbose_name = "Row Level Permission"
+        verbose_name_plural = "Row Level Permissions"
+        ordering = ["-created_at"]
+        db_table = "row_level_permission"
+        unique_together = ("group", "code")
+
+
+
 ## WHERE I CAN CREATED READ UPDATE DELETE TO USER
 class AccessGroupUserDatabase(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -61,9 +106,19 @@ class AccessGroupUserDatabase(models.Model):
     user = models.ForeignKey(
         "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
-
+    ## here code is related field where selected models particular code only accesible to user
+    code = models.CharField(max_length=100, unique=False, null=True, blank=True)
+    
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True ,related_name="company"
+    )
 
     def __str__(self):
         return str(self.user) + " - " + str(self.access_group)
@@ -79,17 +134,26 @@ class AccessGroupUserDatabase(models.Model):
 ##direct give permision to user WHERE I CAN CREATED READ UPDATE DELETE FOR USER ADN MODEL
 class UserModelPermission(models.Model):
     user = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True ,related_name="user"
     )
 
     model = models.ForeignKey(ModelNameDatabase, on_delete=models.CASCADE)
-
+    code = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    
+    
     can_create = models.BooleanField(null=True)
     can_read = models.BooleanField(null=True)
     can_update = models.BooleanField(null=True)
     can_delete = models.BooleanField(null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_user"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_user"
+    )
 
     def __str__(self):
         return str(self.user) + " - " + str(self.model)
@@ -108,13 +172,19 @@ class SubscriptionModel(models.Model):
     create = models.BooleanField(default=False)
     can_delete = models.BooleanField(default=False)
     update = models.BooleanField(default=False)
+    
     code = models.CharField(max_length=100, unique=False, blank=True, null=True)
-    company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
-    )
+
     ##timestamp
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_sub"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_sub"
+    )
 
     def __str__(self):
         return (
@@ -128,8 +198,8 @@ class SubscriptionModel(models.Model):
         )
 
     class Meta:
-        verbose_name = "Subscription Model"
-        verbose_name_plural = "Subscription Models"
+        verbose_name = "Subscription"
+        verbose_name_plural = "Subscriptions"
         ordering = ["-created_at"]
         db_table = "subscription_model"
         unique_together = ("model",)
@@ -143,13 +213,20 @@ class ApprovalStatusDatabase(models.Model):
     ##timestamp
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_ap_status"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_ap_status"
+    )
 
     def __str__(self):
         return self.status
 
     class Meta:
-        verbose_name = "Approval Status"
-        verbose_name_plural = "Approval Statuses"
+        verbose_name = "StatusApproval"
+        verbose_name_plural = "StatusApproval"
         ordering = ["-created_at"]
         db_table = "approval_status_database"
 
@@ -169,13 +246,20 @@ class ApprovalStack(models.Model):
     comments = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_ap_stack"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_ap_stack"
+    )
 
     def __str__(self):
         return self.code
 
     class Meta:
-        verbose_name = "Approval Stack"
-        verbose_name_plural = "Approval Stacks"
+        verbose_name = "Linked_List_Approver"
+        verbose_name_plural = "Linked_List_Approver"
         ordering = ["-created_at"]
         db_table = "approval_stack"
 
@@ -210,11 +294,19 @@ class ApprovalProcess(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_ap_process"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_ap_process"
+    )
+    
     def __str__(self):
         return str(self.code) + " - " + str(self.model_name)
 
     class Meta:
-        verbose_name = "Approval Process"
-        verbose_name_plural = "Approval Processes"
+        verbose_name = "Shadow_model"
+        verbose_name_plural = "Shadow_model"
         ordering = ["-created_at"]
         db_table = "approval_process"

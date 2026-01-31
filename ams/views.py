@@ -60,7 +60,6 @@ class ModelNameDatabaseView(APIView):
 class PipelineApprove(APIView):
 
     def get(self, request, pk=None):
-        print(request.user)
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalProcess, data_copy=request.data.copy()
         ).process(pk=pk)

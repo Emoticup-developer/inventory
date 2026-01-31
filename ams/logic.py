@@ -18,6 +18,7 @@ from ams.models import (
     ApprovalStack,
     ApprovalStatusDatabase,
     ModelNameDatabase,
+    RowLevelPermission,
     SubscriptionModel,
     UserModelPermission,
 )
@@ -165,6 +166,16 @@ class DATAHANDLER:
         self.can_read = False
         self.data_manager = self.data_management()
         self.approval_stack = self.check_model_author()
+        self.rba = self.role_base_access()
+
+    def role_base_access(self):
+        model = ModelNameDatabase.objects.filter(
+                model_name=self.class_name.__name__
+            ).first()
+        my_group = AccessGroupDatabase.objects.filter(model=model).first()
+        m_rba = RowLevelPermission.objects.filter(group=my_group,user=self.request.user).first()
+        return m_rba
+
 
     def check_model_author(self):
         if not self.request.user.is_authenticated:
@@ -216,12 +227,12 @@ class DATAHANDLER:
     def process(self, pk=None):
         try:
             if self.method == "POST":
-
                 if not self.can_create:
                     return Response(
                         {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED
                     )
                 return self.create()
+            
             elif self.method == "GET":
                 if not self.can_read:
                     return Response(
@@ -230,6 +241,7 @@ class DATAHANDLER:
                 if pk:
                     return self.read(pk)
                 return self.read()
+            
             elif self.method == "PUT" or self.method == "PATCH":
                 if not self.can_update:
                     return Response(
@@ -241,8 +253,8 @@ class DATAHANDLER:
                     return Response(
                         {"error": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST
                     )
+                    
             elif self.method == "DELETE":
-                print(self.can_delete)
                 if not self.can_delete:
                     return Response(
                         {"error": "Unauthorized"}, status=status.HTTP_401_UNAUTHORIZED

@@ -10,6 +10,13 @@ class StatusDatabase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_status_database"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_status_database"
+    )
+    
     def __str__(self):
         return self.status
 
@@ -27,6 +34,12 @@ class StatusDatabaseUser(models.Model):
     status_description = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_status_database_user"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_status_database_user"
+    )
     
     def __str__(self):
         return self.status
@@ -45,6 +58,12 @@ class BusinessArea(models.Model):
     business_area_description = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="business_area_creator"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="business_area_company"
+    )
     
     def __str__(self):
         return self.business_area
@@ -65,6 +84,13 @@ class BusinessSector(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_business_sector"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_business_sector"
+    )
+    
     def __str__(self):
         return self.business_sector
 
@@ -84,6 +110,13 @@ class CurrencyDatabase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_currency"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_currency"
+    )
+    
     def __str__(self):
         return self.currency_name
 
@@ -102,6 +135,13 @@ class CountryDatabase(models.Model):
     country_logo = models.ImageField(upload_to="country_logos/", blank=True, null=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_country"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_country"
+    )
 
     def __str__(self):
         return self.country_name
@@ -121,6 +161,12 @@ class StateDatabase(models.Model):
     state_logo = models.ImageField(upload_to="state_logos/", blank=True, null=True, default=None)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_state"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_state"
+    )
 
     def __str__(self):
         return self.state_name
@@ -141,6 +187,13 @@ class CityDatabase(models.Model):
     pin_code = models.CharField(max_length=100, null=True, blank=True)       
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_city_db"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_city_db"
+    )
 
     def __str__(self):
         return self.city_name
@@ -158,6 +211,12 @@ class LanguageDatabase(models.Model):
     language_code = models.CharField(max_length=100, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_lang"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_lang"
+    )
 
     def __str__(self):
         return self.language_name
