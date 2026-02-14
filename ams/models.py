@@ -32,9 +32,9 @@ class AccessGroupDatabase(models.Model):
     access_group_code = models.CharField(max_length=100, unique=True)
     access_group_description = models.CharField(max_length=100)
     ##models
-    model = models.ForeignKey(
-        "ModelNameDatabase", on_delete=models.SET_NULL, null=True, blank=True
-    )
+    # model = models.ForeignKey(
+    #     "ModelNameDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    # )
     url = models.CharField(max_length=100, null=True, blank=True)
     ##access
     can_create = models.BooleanField(default=False)
@@ -106,6 +106,9 @@ class AccessGroupUserDatabase(models.Model):
     user = models.ForeignKey(
         "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
+    model = models.ForeignKey(
+        "ModelNameDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
     ## here code is related field where selected models particular code only accesible to user
     code = models.CharField(max_length=100, unique=False, null=True, blank=True)
     
@@ -121,13 +124,13 @@ class AccessGroupUserDatabase(models.Model):
     )
 
     def __str__(self):
-        return str(self.user) + " - " + str(self.access_group)
+        return str(self.user) + "--- has access ---" + str(self.model.model_name) + "--- in ---" + str(self.access_group)
 
     class Meta:
         verbose_name = "Access Group User"
         verbose_name_plural = "Access Group Users"
         ordering = ["-created_at"]
-        unique_together = ("access_group", "user")
+        unique_together = ("access_group", "user","model")
         db_table = "access_group_user_database"
 
 
@@ -263,6 +266,34 @@ class ApprovalStack(models.Model):
         ordering = ["-created_at"]
         db_table = "approval_stack"
 
+##SUB ttask model 
+class SubTask(models.Model):
+    model = models.ForeignKey(
+        "ModelNameDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    payload = models.JSONField(null=True, blank=True)
+    sub_task_uuid = models.UUIDField(editable=True, unique=False,null=True,blank=True)
+    method = models.CharField(max_length=100, unique=False, blank=True, null=True)
+    instance_id = models.CharField(max_length=100, unique=False, blank=True, null=True)
+    ##timestamp
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_executed = models.BooleanField(default=False)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_sub_task"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_sub_task"
+    )
+
+    def __str__(self):
+        return str(self.sub_task_uuid) + " ---> " + str(self.model)
+
+    class Meta:
+        verbose_name = "SubTask"
+        verbose_name_plural = "SubTask"
+        ordering = ["-created_at"]
+        db_table = "sub_task"
 
 ## BASE WHERE DATA IS STORED FOR APPROVAL
 class ApprovalProcess(models.Model):
@@ -289,11 +320,13 @@ class ApprovalProcess(models.Model):
     code = models.CharField(max_length=100, unique=False)
     method = models.TextField(blank=False , null = False , default = "POST")
     comments = models.JSONField(blank=True, null=True)
-
+    sub_task_uuid = models.UUIDField(editable=True, unique=True,null=True,blank=True)
     ##timestamp
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    ##it help to identify the fucntion
+    bloc = models.TextField(null=True, blank=True)
 
     creator = models.ForeignKey(
         "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_ap_process"
@@ -308,5 +341,32 @@ class ApprovalProcess(models.Model):
     class Meta:
         verbose_name = "Shadow_model"
         verbose_name_plural = "Shadow_model"
+        unique_together = ("model_name", "code","method","update_id","id")
         ordering = ["-created_at"]
         db_table = "approval_process"
+
+
+
+class NavigationBox(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=False)
+    path = models.CharField(max_length=100, unique=False)
+    ##timestamp
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_navigation_box"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_navigation_box"
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Navigation Box"
+        verbose_name_plural = "Navigation Boxes"
+        ordering = ["-created_at"]
+        db_table = "navigation_box"

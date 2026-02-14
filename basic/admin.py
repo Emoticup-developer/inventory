@@ -3,7 +3,7 @@ from django.contrib import admin
 from basic.models import CityDatabase, CompanyDatabase, CountryDatabase, LanguageDatabase, StateDatabase, StatusDatabase, StatusDatabaseUser, TempModel, UserDatabase, UserTypeDatabase
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import UserDatabase
+from .models import PositionDatabase, UserDatabase
 
 # Register your models here.
 admin.site.register(TempModel)
@@ -15,6 +15,7 @@ admin.site.register(CityDatabase)
 admin.site.register(LanguageDatabase)
 admin.site.register(CompanyDatabase)
 admin.site.register(UserTypeDatabase)
+admin.site.register(PositionDatabase)
 
 
 
@@ -34,6 +35,8 @@ class UserDatabaseAdmin(UserAdmin):
                 "user_code",
                 "status",
                 "phone_number",
+                "position",
+                "manager"
             )
         }),
     )

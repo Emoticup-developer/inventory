@@ -9,5 +9,8 @@ urlpatterns = [
     ##PipelineApprove
     path("pipeline_approve/", PipelineApprove.as_view(), name="pipeline_approve"),
     path("pipeline_approve/<pk>", PipelineApprove.as_view(), name="pipeline_approve"),
+    ##NavigationBoxView
+    path("navigation_box/", NavigationBoxView.as_view(), name="navigation_box"),
+    path("navigation_box/<pk>", NavigationBoxView.as_view(), name="navigation_box"),
     
 ]

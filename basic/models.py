@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 # Create your models here.
+from mptt.models import MPTTModel, TreeForeignKey
 
 class StatusDatabase(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -321,7 +322,12 @@ class UserDatabase(AbstractUser):
     email = models.EmailField(unique=True)
     status = models.ForeignKey("StatusDatabaseUser", on_delete=models.SET_NULL, null=True, blank=True)
     phone_number = models.CharField(max_length=100, null=True, blank=True)
-    
+    manager = models.ForeignKey("self", 
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="children"
+    )
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -340,6 +346,9 @@ class UserDatabase(AbstractUser):
         ordering = ["-created_at"]
         db_table = "user_database"
         unique_together = ("username", "email")
+        
+    class MPTTMeta:
+        parent_attr = "manager"
 
 
 

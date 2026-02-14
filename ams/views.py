@@ -7,10 +7,24 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
-from ams.logic import DATAHANDLER
-from ams.models import AccessGroupDatabase, AccessGroupUserDatabase, ApprovalProcess, ApprovalStack, ApprovalStatusDatabase, ModelNameDatabase, SubscriptionModel, UserModelPermission
+from ams.logic import DATAHANDLER, SUBTASKHANDLER
+from ams.models import (
+    AccessGroupDatabase,
+    AccessGroupUserDatabase,
+    ApprovalProcess,
+    ApprovalStack,
+    ApprovalStatusDatabase,
+    ModelNameDatabase,
+    NavigationBox,
+    SubscriptionModel,
+    UserModelPermission,
+)
 from django.db import transaction
 from django.apps import apps
+
+from django.forms.models import model_to_dict
+
+from basic.models import UserDatabase
 
 
 class CustomLoginView(APIView):
@@ -25,11 +39,15 @@ class CustomLoginView(APIView):
             if user is None:
                 raise AuthenticationFailed("Invalid credentials")
             refresh = RefreshToken.for_user(user)
+            data = model_to_dict(user)
+
             return Response(
                 {
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
                     "username": user.username,
+                    "date": str(data),
+                    "position": user.position.position_code if user.position else None,
                 }
             )
         except Exception as ex:
@@ -57,19 +75,49 @@ class ModelNameDatabaseView(APIView):
         return pipe
 
 
+def resolve_foreign_keys(model_class, data: dict):
+    resolved = {}
+    for field in model_class._meta.fields:
+        if field.name not in data:
+            continue
+
+        value = data[field.name]
+
+        if isinstance(field, models.ForeignKey):
+            if value is None:
+                resolved[field.name] = None
+            else:
+                resolved[field.name] = field.remote_field.model.objects.get(pk=value)
+        else:
+            resolved[field.name] = value
+
+    return resolved
+
+
 class PipelineApprove(APIView):
 
     def get(self, request, pk=None):
+        data_copy = request.data.copy()
         pipe = DATAHANDLER(
-            request=request, class_name=ApprovalProcess, data_copy=request.data.copy()
-        ).process(pk=pk)
-        return pipe
+            request=request, class_name=ApprovalProcess, data_copy=data_copy
+        )
+        pipe_out = pipe.process(pk=pk)
+
+        if isinstance(pipe_out, Response):
+            return pipe_out
+
+        instance = pipe_out
+        serializer_class = pipe.MySerializerView(pipe.class_name)
+
+        return Response(serializer_class(instance, many=True).data, status=200)
 
     def post(self, request):
         try:
+            
             data_copy = request.data.copy()
             instance = ApprovalProcess.objects.filter(pk=request.data["id"]).first()
-
+            sub_task_handler = SUBTASKHANDLER(instance.sub_task_uuid if instance.sub_task_uuid else None)
+            
             # Authorization check
             if (
                 instance.recent_user is not None
@@ -83,7 +131,7 @@ class PipelineApprove(APIView):
             if instance.status.code == "EXECUTED":
                 return Response(
                     {"error": "This request is already executed"},
-                    status=status.HTTP_401_UNAUTHORIZED,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if data_copy["is_approve"] == True or data_copy["is_approve"] == "true":
@@ -109,7 +157,7 @@ class PipelineApprove(APIView):
                         ModelClass = apps.get_model(app_label, model_name)
                         # here the request is ready to create
                         if instance.method == "POST":
-                            self.upsert_model_instance(ModelClass, instance.payload)
+                            model_instance = self.upsert_model_instance(ModelClass, instance.payload)
                             status_code = ApprovalStatusDatabase.objects.filter(
                                 code="EXECUTED"
                             ).first()
@@ -118,13 +166,14 @@ class PipelineApprove(APIView):
                                 instance.status = status_code
 
                             instance.save()
+                            sub_task_handler.bloc_run(instance.bloc,{"model": model_instance})
                             return Response(
                                 {"message": "The data has been saved!"},
                                 status=status.HTTP_201_CREATED,
                             )
 
                         elif instance.method == "PUT" or instance.method == "PATCH":
-                            self.upsert_model_instance(
+                            model_instance = self.upsert_model_instance(
                                 ModelClass, instance.payload, instance.update_id
                             )
 
@@ -136,6 +185,8 @@ class PipelineApprove(APIView):
                                 instance.status = status_code
 
                             instance.save()
+                            sub_task_handler.bloc_run(instance.bloc,{"model": model_instance})
+                            
                             return Response(
                                 {"message": "The data has been updated!"},
                                 status=status.HTTP_201_CREATED,
@@ -153,6 +204,8 @@ class PipelineApprove(APIView):
                                 instance.status = status_code
 
                             instance.save()
+                            sub_task_handler.bloc_run(instance.bloc,{"model": model_obj})
+                            
                             return Response(
                                 {"message": "The data has been deleted!"},
                                 status=status.HTTP_201_CREATED,
@@ -179,6 +232,9 @@ class PipelineApprove(APIView):
                         status=status.HTTP_201_CREATED,
                     )
             else:
+                if not instance.comments:
+                    instance.comments = []
+
                 instance.comments.append(
                     {
                         "user": request.user.username,
@@ -210,10 +266,6 @@ class PipelineApprove(APIView):
         return pipe
 
     def upsert_model_instance(self, ModelClass, data: dict, instance_id=None):
-        """
-        Create or update a Django model instance.
-        Handles JSONField, FileField, ImageField correctly.
-        """
 
         # Get model field map
         model_fields = {
@@ -250,10 +302,20 @@ class PipelineApprove(APIView):
                 setattr(instance, field_name, value)
                 continue
 
+            if isinstance(field, models.ForeignKey):
+                if value is None:
+                    setattr(instance, field_name, None)
+                else:
+                    related_model = field.remote_field.model
+                    related_instance = related_model.objects.get(pk=value)
+                    setattr(instance, field_name, related_instance)
+                continue
+
             # 🔹 Normal fields (CharField, BooleanField, etc.)
             setattr(instance, field_name, value)
 
         instance.save()
+        
         return instance
 
 
@@ -264,37 +326,35 @@ class AccessGroupDatabaseView(APIView):
             request=request, class_name=AccessGroupDatabase, data_copy=data_copy
         )
         pipe_out = pipe.process(pk=pk)
-        
+
         if isinstance(pipe_out, Response):
             return pipe_out
 
         instance = pipe.objects.all()
         serializer_class = pipe.MySerializerView(pipe.class_name)
-        
+
         return Response(serializer_class(instance, many=True).data, status=200)
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-
-
 
 
 class AccessGroupUserDatabaseView(APIView):
@@ -304,29 +364,29 @@ class AccessGroupUserDatabaseView(APIView):
             request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=AccessGroupUserDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
-    
+
+
 class UserModelPermissionView(APIView):
     def get(self, request, pk=None):
         data_copy = request.data.copy()
@@ -334,29 +394,29 @@ class UserModelPermissionView(APIView):
             request=request, class_name=UserModelPermission, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=UserModelPermission, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=UserModelPermission, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=UserModelPermission, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
-    
+
+
 class SubscriptionModelView(APIView):
     def get(self, request, pk=None):
         data_copy = request.data.copy()
@@ -364,29 +424,29 @@ class SubscriptionModelView(APIView):
             request=request, class_name=SubscriptionModel, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=SubscriptionModel, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=SubscriptionModel, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=SubscriptionModel, data_copy=data_copy
         ).process(pk=pk)
-        return pipe 
-    
-    
+        return pipe
+
+
 class ApprovalStatusDatabaseView(APIView):
     def get(self, request, pk=None):
         data_copy = request.data.copy()
@@ -394,28 +454,29 @@ class ApprovalStatusDatabaseView(APIView):
             request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStatusDatabase, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
+
 class ApprovalStackView(APIView):
     def get(self, request, pk=None):
         data_copy = request.data.copy()
@@ -423,26 +484,70 @@ class ApprovalStackView(APIView):
             request=request, class_name=ApprovalStack, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def post(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStack, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def put(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStack, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
+
     def delete(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(
             request=request, class_name=ApprovalStack, data_copy=data_copy
         ).process(pk=pk)
         return pipe
-    
-    
+
+
+class NavigationBoxView(APIView):
+    def get(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=NavigationBox, data_copy=data_copy
+        )
+        # pipe.can_read = True
+        pipe_out = pipe.process(pk=pk)
+
+        if isinstance(pipe_out, Response):
+            return pipe_out
+
+        instance = pipe_out
+
+        serializer_class = pipe.MySerializerView(pipe.class_name)
+
+        return Response(serializer_class(instance, many=True).data, status=200)
+
+    def post(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=NavigationBox, data_copy=data_copy
+        )
+        # pipe.can_create = True
+        pipe_out = pipe.process(pk=pk)
+        return pipe_out
+
+    def put(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=NavigationBox, data_copy=data_copy
+        )
+        # pipe.can_update = True
+        pipe_out = pipe.process(pk=pk)
+        return pipe_out
+
+    def delete(self, request, pk=None):
+        data_copy = request.data.copy()
+        pipe = DATAHANDLER(
+            request=request, class_name=NavigationBox, data_copy=data_copy
+        )
+        # pipe.can_delete = True
+        pipe_out = pipe.process(pk=pk)
+        return pipe_out

@@ -1,6 +1,7 @@
 from django.db import models
 import uuid
 
+
 class Units(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=100)
@@ -9,12 +10,20 @@ class Units(models.Model):
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_units"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_units",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_units"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_units",
     )
 
     def __str__(self):
@@ -39,12 +48,20 @@ class UnitOfMeasure(models.Model):
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_units_of_measure"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_units_of_measure",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_units_of_measure"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_units_of_measure",
     )
 
     def __str__(self):
@@ -66,11 +83,20 @@ class MaterialGroup(models.Model):
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_group"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_group",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_group"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_group",
     )
 
     def __str__(self):
@@ -95,10 +121,18 @@ class MaterialCategory(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_category"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_category",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_category"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_category",
     )
 
     def __str__(self):
@@ -123,10 +157,18 @@ class MaterialType(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="material_type"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="material_type",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="material_type"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="material_type",
     )
 
     def __str__(self):
@@ -141,7 +183,9 @@ class MaterialType(models.Model):
 
 
 class Material(models.Model):
-    image = models.ImageField(null=True, blank=True, upload_to="materials/", default=None)
+    image = models.ImageField(
+        null=True, blank=True, upload_to="materials/", default=None
+    )
     material_name = models.CharField(max_length=100)
     code = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
@@ -164,7 +208,7 @@ class Material(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="issue_materials", 
+        related_name="issue_materials",
     )
     weight = models.DecimalField(max_digits=10, decimal_places=2)
     volume = models.DecimalField(max_digits=10, decimal_places=2)
@@ -174,34 +218,43 @@ class Material(models.Model):
         "MaterialType", on_delete=models.SET_NULL, null=True, blank=True
     )
     description = models.TextField(null=True, blank=True)
-    
+
     ## settings
     re_order_level = models.DecimalField(max_digits=10, decimal_places=2)
     re_order_quantity = models.DecimalField(max_digits=10, decimal_places=2)
-    
+
     ##expiry
     has_expiry = models.BooleanField(default=False)
     shelf_life = models.DecimalField(max_digits=10, decimal_places=2)
-    
-    qr_code = models.CharField(max_length=100, null=True, blank=True,unique=True)
-    
+
+    qr_code = models.CharField(max_length=100, null=True, blank=True, unique=True)
+
     ##vendor details
     vendor = models.ForeignKey(
-        "vendor.Vendor", on_delete=models.SET_NULL, null=True, blank=True,related_name="materials"
+        "vendor.Vendor",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="materials",
     )
-    
-    
-    movement = models.JSONField(
-        null=True, blank=True, default=list
-    )
+
+    movement = models.JSONField(null=True, blank=True, default=list)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_material"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_material",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_material"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_material",
     )
 
     def __str__(self):
@@ -213,6 +266,7 @@ class Material(models.Model):
         ordering = ["-created_at"]
         db_table = "material"
         unique_together = ("material_name", "code", "short_name")
+
 
 class PlantType(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -232,12 +286,20 @@ class PlantType(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_plant_type"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_plant_type",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_plant_type"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_plant_type",
     )
 
     class Meta:
@@ -252,15 +314,15 @@ class Plant(models.Model):
     plant_name = models.CharField(max_length=100)
     code = models.CharField(max_length=100)
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True   
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
     plant_type = models.ForeignKey(
         "PlantType", on_delete=models.SET_NULL, null=True, blank=True
     )
     short_name = models.CharField(max_length=100)
-    description = models.TextField( null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
     is_operational = models.BooleanField(default=True)
-    
+
     currency = models.ForeignKey(
         "basic.CurrencyDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -276,13 +338,18 @@ class Plant(models.Model):
     )
     address_line1 = models.TextField(null=True, blank=True)
     address_line2 = models.TextField(null=True, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="creator_plant"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="creator_plant",
     )
+
     def __str__(self):
         return self.plant_name
 
@@ -292,8 +359,8 @@ class Plant(models.Model):
         ordering = ["-created_at"]
         db_table = "plant"
         unique_together = ("plant_name", "code", "short_name")
-        
-        
+
+
 class WarehouseType(models.Model):
     name = models.CharField(max_length=100, unique=True)
     code = models.CharField(max_length=50, unique=True, db_index=True)
@@ -309,12 +376,20 @@ class WarehouseType(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_wrehouse_type"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_wrehouse_type",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_wrehouse_type"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_wrehouse_type",
     )
 
     class Meta:
@@ -325,30 +400,24 @@ class WarehouseType(models.Model):
         return f"{self.name} ({self.code})"
 
 
-
 class Warehouse(models.Model):
     warehouse_name = models.CharField(max_length=150)
     warehouse_code = models.CharField(max_length=50, unique=True, db_index=True)
     short_name = models.CharField(max_length=50, null=True, blank=True)
 
     plant = models.ForeignKey(
-        "Plant",
-        on_delete=models.PROTECT,
-        related_name="warehouses"
+        "Plant", on_delete=models.PROTECT, related_name="warehouses"
     )
 
     warehouse_type = models.ForeignKey(
-        "WarehouseType",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        "WarehouseType", on_delete=models.SET_NULL, null=True, blank=True
     )
 
     is_active = models.BooleanField(default=True)
 
     address_line1 = models.TextField(null=True, blank=True)
     address_line2 = models.TextField(null=True, blank=True)
-    
+
     country = models.ForeignKey(
         "basic.CountryDatabase", on_delete=models.SET_NULL, null=True, blank=True
     )
@@ -366,10 +435,18 @@ class Warehouse(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_warehouse"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_warehouse",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="werehouse_company"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="werehouse_company",
     )
 
     class Meta:
@@ -379,8 +456,6 @@ class Warehouse(models.Model):
 
     def __str__(self):
         return f"{self.warehouse_name} ({self.warehouse_code})"
-
-
 
 
 class StorageLocationType(models.Model):
@@ -399,12 +474,20 @@ class StorageLocationType(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_storage_location_type"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_storage_location_type",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="storage_location_type"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storage_location_type",
     )
 
     class Meta:
@@ -422,26 +505,18 @@ class StorageLocation(models.Model):
     short_name = models.CharField(max_length=50, null=True, blank=True)
 
     warehouse = models.ForeignKey(
-        "Warehouse",
-        on_delete=models.PROTECT,
-        related_name="storage_locations"
+        "Warehouse", on_delete=models.PROTECT, related_name="storage_locations"
     )
 
     storage_type = models.ForeignKey(
-        "StorageLocationType",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+        "StorageLocationType", on_delete=models.SET_NULL, null=True, blank=True
     )
 
     is_active = models.BooleanField(default=True)
 
     # Physical characteristics
     max_capacity = models.DecimalField(
-        max_digits=12,
-        decimal_places=3,
-        null=True,
-        blank=True
+        max_digits=12, decimal_places=3, null=True, blank=True
     )
 
     is_blocked = models.BooleanField(default=False)
@@ -451,12 +526,20 @@ class StorageLocation(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_storage_location"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_storage_location",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="storage_location"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="storage_location",
     )
 
     class Meta:
@@ -469,16 +552,15 @@ class StorageLocation(models.Model):
         return f"{self.location_name} ({self.location_code})"
 
 
-
 class MaterialMovement(models.Model):
     movement_name = models.CharField(max_length=100, unique=True)
 
     movement_code = models.CharField(max_length=50, unique=True, db_index=True)
-    
-    ##this indicate where materal from and to like it might wrehouse or store wherehouse as soem code and storeage 
+
+    ##this indicate where materal from and to like it might wrehouse or store wherehouse as soem code and storeage
     source_code = models.CharField(max_length=50, null=True, blank=True)
     destination_code = models.CharField(max_length=50, null=True, blank=True)
-    
+
     description = models.TextField(null=True, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -486,17 +568,24 @@ class MaterialMovement(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_material_movement"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_material_movement",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="material_movement"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="material_movement",
     )
-    
+
     class Meta:
         db_table = "material_movement"
         ordering = ["sort_order", "movement_name"]
         unique_together = ("movement_name", "movement_code")
-        
 
     def __str__(self):
         return f"{self.movement_name} ({self.movement_code})"
@@ -512,10 +601,18 @@ class TransactionStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_transaction_status"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_transaction_status",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="transaction_status"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transaction_status",
     )
 
     class Meta:
@@ -527,60 +624,55 @@ class TransactionStatus(models.Model):
         return f"{self.status_name} ({self.status_code})"
 
 
-
-
 class Transaction(models.Model):
-    transaction_code = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    transaction_code = models.UUIDField(
+        primary_key=True, default=uuid.uuid4, editable=False
+    )
     transaction_name = models.CharField(max_length=100, unique=True)
     description = models.TextField(null=True, blank=True)
-    
+
     movement = models.ForeignKey(
-        "MaterialMovement",
-        on_delete=models.PROTECT,  # PROTEC
-        null=False,
-        blank=False
+        "MaterialMovement", on_delete=models.PROTECT, null=False, blank=False  # PROTEC
     )
-    
+
     material = models.ForeignKey(
-        "Material",
-        on_delete=models.PROTECT,
-        null=False,
-        blank=False
+        "Material", on_delete=models.PROTECT, null=False, blank=False
     )
-    
+
     source_code = models.CharField(max_length=20)
     destination_code = models.CharField(max_length=20)
-    
+
     units_of_measure = models.ForeignKey(
-        "UnitOfMeasure",
-        on_delete=models.PROTECT,
-        null=False,
-        blank=False
+        "UnitOfMeasure", on_delete=models.PROTECT, null=False, blank=False
     )
     volume = models.DecimalField(max_digits=14, decimal_places=3)
-    
-    created_by = models.ForeignKey(
-        "basic.UserDatabase",
-        on_delete=models.PROTECT
-    )
-    
+
+    created_by = models.ForeignKey("basic.UserDatabase", on_delete=models.PROTECT)
+
     is_shipped = models.BooleanField(default=False)
-    
+
     transaction_status = models.ForeignKey(
-        "TransactionStatus",
-        on_delete=models.PROTECT
+        "TransactionStatus", on_delete=models.PROTECT
     )
-    
+
     history = models.JSONField(default=list, blank=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_transaction"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_transaction",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="transaction"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transaction",
     )
 
     class Meta:
@@ -589,32 +681,165 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_name} ({self.transaction_code})"
-    
-    
-    
+
+
 class MaterialReport(models.Model):
-    material = models.ForeignKey(
-        "Material",
-        on_delete=models.PROTECT
-    )
+    material = models.ForeignKey("Material", on_delete=models.PROTECT)
     location_code = models.CharField(max_length=10)
-    units_of_measure = models.ForeignKey(
-        "UnitOfMeasure",
-        on_delete=models.PROTECT
-    )
+    units_of_measure = models.ForeignKey("UnitOfMeasure", on_delete=models.PROTECT)
     volume = models.DecimalField(max_digits=14, decimal_places=3)
-    related_transaction = models.ForeignKey(
-        "Transaction",
-        on_delete=models.PROTECT
-    )
+    related_transaction = models.ForeignKey("Transaction", on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     creator = models.ForeignKey(
-        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_material_report"
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="user_material_report",
     )
     company = models.ForeignKey(
-        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="material_report"
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="material_report",
     )
+
     class Meta:
         db_table = "material_report"
         unique_together = ("material", "location_code", "units_of_measure")
+
+
+from django.db import models
+import uuid
+
+
+class PO_Status(models.Model):
+    status_name = models.CharField(max_length=100, unique=True)
+    status_code = models.CharField(max_length=50, unique=True, db_index=True)
+    description = models.TextField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "po_status"
+        ordering = ["sort_order", "status_name"]
+        unique_together = ("status_name", "status_code")
+
+    def __str__(self):
+        return f"{self.status_name} ({self.status_code})"
+
+
+class PurchaseOrder(models.Model):
+    po_number = models.CharField(max_length=100, unique=True, db_index=True)
+    quotation = models.ForeignKey(
+        "vendor.Quotation",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="purchase_orders",
+    )
+
+    vendor = models.ForeignKey(
+        "vendor.Vendor", on_delete=models.PROTECT, related_name="purchase_orders"
+    )
+
+    plant = models.ForeignKey(
+        "ims.Plant", on_delete=models.PROTECT, related_name="purchase_orders"
+    )
+
+    warehouse = models.ForeignKey(
+        "ims.Warehouse", on_delete=models.PROTECT, related_name="purchase_orders"
+    )
+
+    order_date = models.DateField()
+    delivery_date = models.DateField(null=True, blank=True)
+
+    shipment_preference = models.CharField(max_length=100, null=True, blank=True)
+    place_of_supply = models.CharField(max_length=100, null=True, blank=True)
+
+    billing_address = models.TextField(null=True, blank=True)
+    shipping_address = models.TextField(null=True, blank=True)
+
+    sub_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discount_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    cgst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    sgst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    igst_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    cgst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    sgst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    igst_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    grand_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    status = models.ForeignKey(
+        "PO_Status", on_delete=models.PROTECT, related_name="purchase_orders"
+    )
+
+    notes = models.TextField(null=True, blank=True)
+    terms_and_conditions = models.TextField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    creator = models.ForeignKey(
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_purchase_orders",
+    )
+
+    company = models.ForeignKey(
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="purchase_orders",
+    )
+
+    class Meta:
+        db_table = "purchase_order"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.po_number}"
+
+
+class PurchaseOrderItem(models.Model):
+    purchase_order = models.ForeignKey(
+        "PurchaseOrder", on_delete=models.CASCADE, related_name="items"
+    )
+    material = models.ForeignKey(
+        "ims.Material", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    description = models.TextField()
+    hsn_sac = models.CharField(max_length=20, null=True, blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=3)
+    uom = models.ForeignKey("ims.UnitOfMeasure", on_delete=models.PROTECT)
+    rate = models.DecimalField(max_digits=14, decimal_places=2)
+
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    tax_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+
+    line_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+    received_quantity = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+
+    is_closed = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "purchase_order_item"
+
+    def __str__(self):
+        return f"{self.purchase_order.po_number} - {self.description}"

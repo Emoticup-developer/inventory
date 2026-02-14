@@ -32,7 +32,14 @@ urlpatterns = [
     ##CurrencyDatabaseView
     path("currency/", CurrencyDatabaseView.as_view(), name="currency"),
     path("currency/<pk>", CurrencyDatabaseView.as_view(), name="currency"),
+    ##PositionDatabaseView
+    path("position/", PositionDatabaseView.as_view(), name="position"),
+    path("position/<pk>", PositionDatabaseView.as_view(), name="position"),
+    ##BusinessAreaView
+    path("business_area/", BusinessAreaView.as_view(), name="business_area"),
+    path("business_area/<pk>", BusinessAreaView.as_view(), name="business_area"),
     
-    
-    
+    ##BusinessSectorView
+    path("business_sector/", BusinessSectorView.as_view(), name="business_sector"),
+    path("business_sector/<pk>", BusinessSectorView.as_view(), name="business_sector"),
 ]
