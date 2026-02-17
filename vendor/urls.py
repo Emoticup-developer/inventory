@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import *
-from .user_view import VendorAccount,VendorQuotation
+from .user_view import PurchaseOrderVendor, TransactionVendor, VendorAccount, VendorAccountData, VendorDeclarationVendor, VendorKYCVendor, VendorMaterialVendor,VendorQuotation
 
 urlpatterns = [
     ##VendorTypeView
@@ -33,4 +33,22 @@ urlpatterns = [
     ##VendorQuotation
     path("vendor_quotation/", VendorQuotation.as_view(), name="vendor_quotation"),
     path("vendor_quotation/<pk>", VendorQuotation.as_view(), name="vendor_quotation"),
+    ##VendorAccountData
+    path("vendor_account_data/", VendorAccountData.as_view(), name="vendor_account_data"),
+    path("vendor_account_data/<pk>", VendorAccountData.as_view(), name="vendor_account_data"),
+    ##VendorDeclarationVendor
+    path("vendor_declaration_vendor/", VendorDeclarationVendor.as_view(), name="vendor_declaration_vendor"),
+    path("vendor_declaration_vendor/<pk>", VendorDeclarationVendor.as_view(), name="vendor_declaration_vendor"),
+    ##VendorKYCVendor
+    path("vendor_kyc_vendor/", VendorKYCVendor.as_view(), name="vendor_kyc_vendor"),
+    path("vendor_kyc_vendor/<pk>", VendorKYCVendor.as_view(), name="vendor_kyc_vendor"),
+    ##VendorMaterialVendor
+    path("vendor_material_vendor/", VendorMaterialVendor.as_view(), name="vendor_material_vendor"),
+    path("vendor_material_vendor/<pk>", VendorMaterialVendor.as_view(), name="vendor_material_vendor"),
+    #TransactionVendor
+    path("transaction_vendor/", TransactionVendor.as_view(), name="transaction_vendor"),
+    path("transaction_vendor/<pk>", TransactionVendor.as_view(), name="transaction_vendor"),
+    ##PurchaseOrderVendor
+    path("purchase_order_vendor/", PurchaseOrderVendor.as_view(), name="purchase_order_vendor"),
+    path("purchase_order_vendor/<pk>", PurchaseOrderVendor.as_view(), name="purchase_order_vendor"),
 ]

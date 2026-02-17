@@ -674,7 +674,9 @@ class Transaction(models.Model):
         blank=True,
         related_name="transaction",
     )
-
+    viewer = models.ManyToManyField(
+        "basic.UserDatabase", blank=True, related_name="viewer_transaction"
+    )
     class Meta:
         db_table = "transaction"
         unique_together = ("transaction_name",)
@@ -787,7 +789,9 @@ class PurchaseOrder(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    viewer = models.ManyToManyField(
+        "basic.UserDatabase", blank=True, related_name="viewer_purchase_order"
+    )
     creator = models.ForeignKey(
         "basic.UserDatabase",
         on_delete=models.SET_NULL,

@@ -149,14 +149,14 @@ class Quotation(models.Model):
         "Vendor", on_delete=models.CASCADE, related_name="vendor_quotations"
     )
 
-    quotation_number = models.CharField(max_length=100)
+    quotation_number = models.CharField(max_length=100,unique=True)
     quotation = models.FileField(upload_to="quotations/")
-    date_of_quotation = models.DateField()
+    date_of_quotation = models.DateField(auto_now_add=True)
 
-    quantity = models.DecimalField(max_digits=12, decimal_places=3)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3,blank=True,null=True)
 
     lead_time_days = models.PositiveIntegerField(default=0)
-
+    is_validated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -492,7 +492,7 @@ class DATAHANDLER:
             return Response({"error": "Not found"}, status=404)
         if self.data_manager is not None and self.data_manager.can_delete:
             self.delete_model_pipe(instance)
-            return Response({"message": "delete request sent for approval"}, status=201)
+            return Response({"message": "delete request sent for approval"}, status=status.HTTP_202_ACCEPTED)
         else:
             self.sub_task_handler.bloc_run(self.bloc, {"model": instance})
             instance.delete()
