@@ -558,8 +558,8 @@ class MaterialMovement(models.Model):
     movement_code = models.CharField(max_length=50, unique=True, db_index=True)
 
     ##this indicate where materal from and to like it might wrehouse or store wherehouse as soem code and storeage
-    source_code = models.CharField(max_length=50, null=True, blank=True)
-    destination_code = models.CharField(max_length=50, null=True, blank=True)
+    source = models.CharField(max_length=50, null=True, blank=True)
+    destination = models.CharField(max_length=50, null=True, blank=True)
 
     description = models.TextField(null=True, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
@@ -677,6 +677,7 @@ class Transaction(models.Model):
     viewer = models.ManyToManyField(
         "basic.UserDatabase", blank=True, related_name="viewer_transaction"
     )
+
     class Meta:
         db_table = "transaction"
         unique_together = ("transaction_name",)
@@ -754,8 +755,12 @@ class PurchaseOrder(models.Model):
         "ims.Plant", on_delete=models.PROTECT, related_name="purchase_orders"
     )
 
-    warehouse = models.ForeignKey(
-        "ims.Warehouse", on_delete=models.PROTECT, related_name="purchase_orders"
+    storage_location = models.ForeignKey(
+        "ims.StorageLocation",
+        on_delete=models.PROTECT,
+        related_name="purchase_orders",
+        null=True,
+        blank=True,
     )
 
     order_date = models.DateField()
@@ -783,7 +788,7 @@ class PurchaseOrder(models.Model):
     status = models.ForeignKey(
         "PO_Status", on_delete=models.PROTECT, related_name="purchase_orders"
     )
-
+    is_released = models.BooleanField(default=False)
     notes = models.TextField(null=True, blank=True)
     terms_and_conditions = models.TextField(null=True, blank=True)
 
@@ -847,3 +852,176 @@ class PurchaseOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.purchase_order.po_number} - {self.description}"
+
+
+class Stock(models.Model):
+    material = models.ForeignKey(
+        "Material",
+        on_delete=models.PROTECT,
+        related_name="stocks",
+    )
+
+    storage_location = models.ForeignKey(
+        "StorageLocation",
+        on_delete=models.PROTECT,
+        related_name="stocks",
+    )
+
+    # Always store in BASE UOM of material
+    base_uom = models.ForeignKey(
+        "UnitOfMeasure",
+        on_delete=models.PROTECT,
+        related_name="stock_base_uom",
+    )
+
+    # Current physical quantity
+    quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=0,
+    )
+
+    # Reserved for production / sales
+    reserved_quantity = models.DecimalField(
+        max_digits=18,
+        decimal_places=6,
+        default=0,
+    )
+
+    # Calculated available stock
+    # available = quantity - reserved_quantity
+    # (Do NOT store this. Calculate dynamically.)
+
+    # Optional batch/lot support (future use)
+    batch_number = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+    )
+
+    # Expiry support (future use)
+    expiry_date = models.DateField(
+        null=True,
+        blank=True,
+    )
+
+    # For audit
+    last_transaction = models.ForeignKey(
+        "Transaction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_updates",
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    company = models.ForeignKey(
+        "basic.CompanyDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stocks",
+    )
+    creator = models.ForeignKey(
+        "basic.UserDatabase",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_stocks",
+    )
+
+    class Meta:
+        db_table = "stock"
+        unique_together = (
+            "material",
+            "storage_location",
+        )
+        indexes = [
+            models.Index(fields=["material"]),
+            models.Index(fields=["storage_location"]),
+        ]
+
+    def __str__(self):
+        return f"{self.material} @ {self.storage_location} = {self.quantity}"
+
+
+class BagInventory(models.Model):
+    user = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    material = models.ForeignKey(
+        "Material", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    volume = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    
+    uom = models.ForeignKey(
+        "UnitOfMeasure", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    
+    is_collected = models.BooleanField(default=False)
+    
+    related_transaction = models.ForeignKey(
+        "Transaction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bag_inventory_transactions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_bag_inventory"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_bag_inventory"
+    )
+    
+    class Meta:
+        db_table = "bag_inventory"
+        unique_together = ("user", "material", "uom")
+        ordering = ["-created_at"]
+        
+    def __str__(self):
+        return f"{self.user} - {self.material} : {self.volume} {self.uom}"
+
+
+class ConsumeAndScrap(models.Model):
+    transaction = models.ForeignKey(
+        "Transaction",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="consume_and_scraps",
+    )
+    material = models.ForeignKey(
+        "Material",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="consume_and_scraps",
+    )
+    volume = models.DecimalField(max_digits=14, decimal_places=3, default=0)
+    is_scrap = models.BooleanField(default=False)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    creator = models.ForeignKey(
+        "basic.UserDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="user_consume_and_scraps"
+    )
+    company = models.ForeignKey(
+        "basic.CompanyDatabase", on_delete=models.SET_NULL, null=True, blank=True, related_name="company_consume_and_scraps"
+    )
+    
+    class Meta:
+        db_table = "consume_and_scrap"
+        unique_together = ("transaction", "material")
+        ordering = ["-created_at"]
+        
+    def __str__(self):
+        return f"{self.transaction} - {self.material} : {self.volume}"

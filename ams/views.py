@@ -46,6 +46,7 @@ class CustomLoginView(APIView):
                     "access": str(refresh.access_token),
                     "refresh": str(refresh),
                     "username": user.username,
+                    "user_code": user.user_code,
                     "date": str(data),
                     "position": user.position.position_code if user.position else None,
                 }

@@ -384,16 +384,20 @@ class DATAHANDLER:
 
         if pk:
             qs = self.class_name.objects.filter(pk=pk)
-            if has_code:
+            
+            if has_code and not (
+                self.request.user.position
+                and self.request.user.position.position_code
+                in CORE_USER_CODE + self.extra_position
+            ):
                 codes = self.rba.values_list("code", flat=True)
                 qs = qs.filter(code__in=codes)
 
-            instance = qs.first()
-
+            instance = qs
             if not instance:
                 return Response({"error": "Not found"}, status=404)
 
-            return Response(SerializerClass(instance).data, status=200)
+            return Response(SerializerClass(instance, many=True).data, status=200)
 
         queryset = dynamic_queryset_filter(
             self.request.query_params,
@@ -419,9 +423,11 @@ class DATAHANDLER:
 
     def update(self, pk):
         codes = self.rba.values_list("code", flat=True)
+        
         field_names = {f.name for f in self.class_name._meta.fields}
+        
         has_code = "code" in field_names
-
+        
         if has_code and not (
             self.request.user.position
             and self.request.user.position.position_code
@@ -435,10 +441,13 @@ class DATAHANDLER:
             return Response({"error": "Not found"}, status=404)
 
         if self.data_manager is not None and self.data_manager.update:
+            
             SerializerClass = self.MySerializer(self.class_name)
-            serializer = SerializerClass(instance, data=self.data_copy, partial=True)
-
+            
+            serializer = SerializerClass(instance, self.data_copy, partial=True)
+            
             if not serializer.is_valid():
+                print(serializer.errors)
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             model_object = self.add_model_update_pipe(instance)
@@ -447,11 +456,15 @@ class DATAHANDLER:
                 {"message": "update sent for approval"}, status=status.HTTP_202_ACCEPTED
             )
         else:
+            print("partial call")
             SerializerClass = self.MySerializer(self.class_name)
             serializer = SerializerClass(instance, data=self.data_copy, partial=True)
             serializer.is_valid(raise_exception=True)
+            print(serializer.errors)
             model_saved = serializer.save()
+            print(f"model saved {model_saved}")
             self.sub_task_handler.bloc_run(self.bloc, {"model": model_saved})
+            print(f"model saved {model_saved}")
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     def add_model_update_pipe(self, instance):
@@ -459,6 +472,7 @@ class DATAHANDLER:
         current_approval = ApprovalStack.objects.filter(
             code=self.data_manager.code, is_first=True
         )
+        
         model_object = ApprovalProcess.objects.create(
             model_name=self.data_manager.model,
             recent_user=current_approval.first() if current_approval else None,
@@ -556,7 +570,6 @@ class SUBTASKHANDLER:
         for item in self.instances:
             if item.is_executed:
                 continue
-
             try:
                 if item.method == "POST":
                     model_class = self.instancesToClass(item)

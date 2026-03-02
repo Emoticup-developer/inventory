@@ -97,5 +97,8 @@ urlpatterns = [
         "purchase_order_item/<pk>",
         PurchaseOrderItemView.as_view(),
         name="purchase_order_item",
-    )
+    ),
+    ##BagInventoryView
+    path("bag_inventory/", BagInventoryView.as_view(), name="bag_inventory"),
+    path("bag_inventory/<pk>", BagInventoryView.as_view(), name="bag_inventory"),
 ]

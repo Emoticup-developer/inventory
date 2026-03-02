@@ -123,7 +123,6 @@ class VendorDeclaration(models.Model):
     declaration_date = models.DateField()
     signature = models.FileField(upload_to="vendor/declarations/")
     accepted = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -124,6 +124,8 @@ class VendorDeclarationView(APIView):
 
     def post(self, request, pk=None):
         data_copy = request.data.copy()
+        print("Data copy in put method:", data_copy)  # Debugging statement
+
         pipe = DATAHANDLER(request, VendorDeclaration, data_copy).process(pk=pk)
         return pipe
     
@@ -144,6 +146,7 @@ class QuotationView(APIView):
         pipe = DATAHANDLER(
             request=request, class_name=Quotation, data_copy=data_copy
         )
+        pipe.can_read = True
         pipe_out = pipe.process(pk=pk)
         
         if isinstance(pipe_out, Response):
