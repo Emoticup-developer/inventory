@@ -911,3 +911,5 @@ class BagInventoryView(APIView):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(request, BagInventory, data_copy).process(pk=pk)
         return pipe
+
+

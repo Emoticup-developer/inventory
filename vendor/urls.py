@@ -51,4 +51,7 @@ urlpatterns = [
     ##PurchaseOrderVendor
     path("purchase_order_vendor/", PurchaseOrderVendor.as_view(), name="purchase_order_vendor"),
     path("purchase_order_vendor/<pk>", PurchaseOrderVendor.as_view(), name="purchase_order_vendor"),
+    
+    #SendLinkToVendor
+    path("send_link_to_vendor/", SendLinkToVendor.as_view(), name="send_link_to_vendor"),
 ]

@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ vars.title }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        background: #EDEAE4;
+        font-family: 'DM Sans', sans-serif;
+        padding: 48px 16px;
+      }
+
+      .wrapper {
+        max-width: 620px;
+        margin: auto;
+      }
+
+      /* ── Header bar ── */
+      .header {
+        background: #1A1A1A;
+        border-radius: 12px 12px 0 0;
+        padding: 28px 40px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .header-logo {
+        font-family: 'DM Serif Display', serif;
+        font-size: 22px;
+        color: #fff;
+        letter-spacing: 0.02em;
+      }
+
+      .header-badge {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #1A1A1A;
+        background: #C8F04D;
+        padding: 5px 12px;
+        border-radius: 20px;
+      }
+
+      /* ── Hero strip ── */
+      .hero {
+        background: #fff;
+        padding: 44px 40px 36px;
+        border-left: 1px solid #E8E5DF;
+        border-right: 1px solid #E8E5DF;
+      }
+
+      .greeting-label {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 10px;
+      }
+
+      .greeting-name {
+        font-family: 'DM Serif Display', serif;
+        font-size: 32px;
+        color: #1A1A1A;
+        line-height: 1.2;
+        margin-bottom: 6px;
+      }
+
+      .greeting-sub {
+        font-size: 14px;
+        color: #888;
+        font-weight: 300;
+      }
+
+      /* ── Divider ── */
+      .divider {
+        height: 1px;
+        background: linear-gradient(to right, #E8E5DF, #C8F04D, #E8E5DF);
+        margin: 0;
+      }
+
+      /* ── Body ── */
+      .body {
+        background: #fff;
+        padding: 36px 40px;
+        border-left: 1px solid #E8E5DF;
+        border-right: 1px solid #E8E5DF;
+      }
+
+      .body p {
+        font-size: 15px;
+        color: #444;
+        line-height: 1.8;
+        font-weight: 300;
+        margin-bottom: 28px;
+      }
+
+      /* ── Credentials card ── */
+      .credentials {
+        background: #F7F6F2;
+        border: 1px solid #E8E5DF;
+        border-radius: 10px;
+        padding: 24px 28px;
+        margin-bottom: 28px;
+      }
+
+      .credentials-title {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 18px;
+      }
+
+      .cred-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 14px;
+        gap: 16px;
+      }
+
+      .cred-row:last-child { margin-bottom: 0; }
+
+      .cred-icon {
+        width: 36px;
+        height: 36px;
+        background: #1A1A1A;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .cred-icon svg { width: 16px; height: 16px; fill: none; stroke: #C8F04D; stroke-width: 2; stroke-linecap: round; }
+
+      .cred-label {
+        font-size: 11px;
+        color: #999;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 2px;
+      }
+
+      .cred-value {
+        font-size: 15px;
+        font-weight: 500;
+        color: #1A1A1A;
+      }
+
+      /* ── CTA button ── */
+      .cta-wrap { text-align: center; margin-bottom: 28px; }
+
+      .cta-btn {
+        display: inline-block;
+        background: #1A1A1A;
+        color: #C8F04D;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 16px 40px;
+        border-radius: 8px;
+      }
+
+      /* ── Help note ── */
+      .help {
+        background: #FFFDE7;
+        border-left: 3px solid #C8F04D;
+        padding: 14px 18px;
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.6;
+      }
+
+      .help a { color: #1A1A1A; font-weight: 500; }
+
+      /* ── Footer ── */
+      .footer {
+        background: #1A1A1A;
+        border-radius: 0 0 12px 12px;
+        padding: 28px 40px;
+        text-align: center;
+      }
+
+      .footer-regards {
+        font-family: 'DM Serif Display', serif;
+        font-size: 16px;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+
+      .footer-team {
+        font-size: 12px;
+        color: #666;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrapper">
+
+      <!-- Header -->
+      <div class="header">
+        <div class="header-logo">KCBPL</div>
+        <div class="header-badge">Vendor Onboarding</div>
+      </div>
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="greeting-label">You're invited</div>
+        <div class="greeting-name">Hello, {{ vars.partner }} </div>
+        <div class="greeting-sub">Greetings from the Procurement Team</div>
+      </div>
+      <div class="divider"></div>
+
+      <!-- Body -->
+      <div class="body">
+        <p>
+          As part of our VOB (Vendor Onboarding) procedure, we kindly request
+          you to complete the VOB form with all mandatory information and submit
+          at your earliest convenience.
+        </p>
+
+        <!-- Credentials -->
+        <div class="credentials">
+          <div class="credentials-title">Your Login Credentials</div>
+
+          <div class="cred-row">
+            <div class="cred-icon">
+              <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div>
+              <div class="cred-label">Username</div>
+              <div class="cred-value">{{ vars.username }}</div>
+            </div>
+          </div>
+
+          <div class="cred-row">
+            <div class="cred-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </div>
+            <div>
+              <div class="cred-label">Password</div>
+              <div class="cred-value">{{ vars.password }}</div>
+            </div>
+          </div>
+
+          <div class="cred-row">
+            <div class="cred-icon">
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <div>
+              <div class="cred-label">Portal Link</div>
+              <div class="cred-value">{{ vars.link }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CTA -->
+        <div class="cta-wrap">
+          <a href="{{ vars.link }}" class="cta-btn">Access VOB Portal →</a>
+        </div>
+
+        <!-- Help -->
+        <div class="help">
+          Any questions? Reach us at
+          <a href="mailto:procurement@emoticup.com">procurement@emoticup.com</a>
+          — we're happy to help you through the process.
+        </div>
+        
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-regards">Looking forward to onboarding you.</div>
+        <div class="footer-team">Team Procurement · KCBPL</div>
+      </div>
+
+    </div>
+  </body>
+</html>
