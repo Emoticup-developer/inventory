@@ -411,14 +411,14 @@ class DATAHANDLER:
         ):
             codes = self.rba.values_list("code", flat=True)
 
-            if "creator" in self.field_names:
-                employees = UserDatabase.objects.filter(
-                    Q(manager=self.request.user) | Q(manager__manager=self.request.user)
-                )
-                queryset = queryset.filter(creator__in=employees)
+            # if "creator" in self.field_names:
+            #     employees = UserDatabase.objects.filter(
+            #         Q(manager=self.request.user) | Q(manager__manager=self.request.user)
+            #     )
+            #     queryset = queryset.filter(creator__in=employees)
 
-            queryset = queryset.filter(code__in=codes)
-
+            # queryset = queryset.filter(code__in=codes)
+            print(queryset)
         return queryset
 
     def update(self, pk):

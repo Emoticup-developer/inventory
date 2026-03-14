@@ -24,12 +24,15 @@ class VendorTypeView(APIView):
     def get(self, request, pk=None):
         data_copy = request.data.copy()
         pipe = DATAHANDLER(request=request, class_name=VendorType, data_copy=data_copy)
+        pipe.can_read = True
+        
         pipe_out = pipe.process(pk=pk)
 
         if isinstance(pipe_out, Response):
             return pipe_out
 
         instance = pipe_out
+        print(instance)
         serializer_class = pipe.MySerializerView(pipe.class_name)
 
         return Response(serializer_class(instance, many=True).data, status=200)
